@@ -1,7 +1,7 @@
 <template>
   <div class="HomeView">
     <div class="messages">
-      <div class="message" :class="{ bot: message.bot }" v-for="message in messages">{{ message.message }}
+      <div class="message" :class="{ bot: message.bot }" v-for="message in messages" v-html="message.message">
       </div>
     </div>
     <div class="footer">
@@ -26,8 +26,7 @@ export default {
       placeHolder: 'Type your message',
       message: '',
       lastRawResponse: '',
-      delimiter: '\n\n\n',
-      botInternalName: 'Joi2'
+      delimiter: '',
     }
   },
   computed: {
@@ -47,17 +46,22 @@ export default {
         bot: false,
         message: this.message
       })
+      console.log(this.messages[0])
       //construct message to send to service
       var maxTurnsAsContext = 999;
       var messageStr = '';
       for (let index = this.messages.length - maxTurnsAsContext < 0 ? 0 : this.messages.length - maxTurnsAsContext; index < this.messages.length; index++) {
         const msg = this.messages[index];
         if (msg.bot) {
-          messageStr += this.botInternalName + ': ' + msg.message + this.delimiter
+          messageStr += "<|assistant|>" + msg.message + "<|endoftext|>"
         }
         else {
-          messageStr += 'User: ' + msg.message + this.delimiter
+          messageStr += "<|prompter|>" + msg.message + "<|endoftext|>"
         }
+      }
+     
+      if(!this.messages.slice(-1).bot){
+        messageStr+="<|assistant|>"
       }
       // this.messages.forEach(msg => {
       //   if (msg.bot) {
@@ -67,40 +71,49 @@ export default {
       //     messageStr += 'User: ' + msg.message + this.delimiter
       //   }
       // });
-      this.postData({ prompt: messageStr + this.botInternalName + ":" }).then((response) => {
+      this.postData({ prompt: messageStr}).then((response) => {
+
         this.processResult(response)
       })
 
       this.message = '';
     },
     processResult(resultString) {
+      console.log(resultString)
       //check if it contains end of text token
       var endToken = "<|endoftext|>"
       var iterate = false;
-      if (resultString.indexOf(endToken) > -1) {
-        //strip it
-        resultString = resultString.replaceAll(endToken, "");
-        // resultString = resultString.replaceAll("\n\n\n\n\n", "");
+      resultString = resultString.replaceAll("\n\n", "</br></br>");
+      
+      if (resultString.split(endToken).slice(-1)=="") {
+       
         console.log('done')
       } else {
         iterate = true;
       }
+
       //process
       var messageArr = [];
-      var messages = resultString.split(this.delimiter);
+      var messages = resultString.split("<|endoftext|>");
+      console.log(messages)
       messages.forEach(msg => {
-        if (msg.split("User: ").length > 1) {
+        if(msg!=''){
+        if (msg.indexOf("<|prompter|>") > -1) {
           messageArr.push({
             bot: false,
-            message: msg.split("User: ")[1]
+            message: msg.split("<|prompter|>")[1]
           })
-        }
-        if (msg.split(this.botInternalName + ": ").length > 1) {
-          messageArr.push({
+        }else{
+          var msgObj = {
             bot: true,
-            message: msg.split(this.botInternalName + ": ")[1]
-          })
+            message: msg.replaceAll("<|assistant|>","")
+          }
+         
+          messageArr.push(msgObj)
+          
         }
+      }
+        
       });
       //assign it
       this.messages = messageArr;
@@ -148,7 +161,7 @@ export default {
     .message {
       box-sizing: border-box;
       padding: 16px;
-
+      white-space: pre-line;
     }
 
     .bot {

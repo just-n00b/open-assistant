@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "uvicorn server:app --reload --host 192.168.0.140"
+    "dev1": "uvicorn server:app --reload --host 192.168.0.140",
+    "dev2": "uvicorn server-oa:app --reload --host 192.168.0.140"
+
   },
   "author": "",
   "license": "ISC",

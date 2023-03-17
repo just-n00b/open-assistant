@@ -8,7 +8,7 @@ from fastapi import Request, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from types import SimpleNamespace
 
-base_path = 'Rallio67/joi2_20B_instruct_alpha'
+base_path = 'OpenAssistant/oasst-sft-1-pythia-12b'
 # base_path = 'Rallio67/chip_12B_instruct_alpha'
 chip_map = {'gpt_neox.embed_in': 0,
             'gpt_neox.layers': 0,
@@ -46,23 +46,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-
-@app.post("/generate")
-async def generateText(request: Request):
+def generate(prompt):
     params = SimpleNamespace()
-    params.stopWords = ["\n\n\n"]
-    requestJson = await request.json()
+    params.stopWords = ["<|endoftext|>"]
     stop_words = params.stopWords
     stop_ids = [tokenizer.encode(w)[0] for w in stop_words]
     stop_criteria = KeywordsStoppingCriteria(stop_ids)
-    prompt = requestJson["prompt"]
     # batch = tokenizer.encode(prompt, return_tensors="pt")
     encoded_input = tokenizer(prompt, return_tensors='pt')
     out = model.generate(
@@ -72,7 +61,7 @@ async def generateText(request: Request):
         use_cache=False,
         eos_token_id=0,
         pad_token_id=0,
-        max_new_tokens=1,
+        max_new_tokens=5,
         num_return_sequences=1,
         # stopping_criteria=StoppingCriteriaList([stop_criteria]),
         temperature=0.5, 
@@ -82,5 +71,21 @@ async def generateText(request: Request):
         repetition_penalty=1.03
     )
     result = tokenizer.decode(out[0])
+    return result
+
+generate("<|prompter|>What is a meme, and what's the history behind this word?<|endoftext|><|assistant|>")
+
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+
+
+@app.post("/generate")
+async def generateText(request: Request):
+    requestJson = await request.json()
+    prompt = requestJson["prompt"]
+    # batch = tokenizer.encode(prompt, return_tensors="pt")    
+    result = generate(prompt)
     # print(result)
     return result
