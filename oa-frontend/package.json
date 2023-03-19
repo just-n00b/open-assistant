@@ -3,11 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "vite --host 192.168.0.140",
+    "dev": "vite",
+    "dev-host": "vite --host 192.168.0.140",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "less": "^4.1.3",
     "vue": "^3.2.45",
     "vue-contenteditable": "^4.1.0",
     "vue-contenteditable-directive": "^1.2.0",

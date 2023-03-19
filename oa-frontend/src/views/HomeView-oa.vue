@@ -5,8 +5,12 @@
       </div>
     </div>
     <div class="footer">
-      <contenteditable class="input" :placeholder="placeHolder" :class="{ empty: isInputEmpty }" tag="div"
-        :contenteditable="true" v-model="message" :no-nl="false" :no-html="true" @keydown="handleKeyDown" />
+      <div class="input-wrapper input">
+        <contenteditable :placeholder="placeHolder" :class="{ empty: isInputEmpty, field: true }" tag="div"
+          :contenteditable="true" v-model="message" :no-nl="false" :no-html="true" @keydown="handleKeyDown" />
+        <button class="commit-button" v-if="!isInputEmpty" @click="clickSend">Send</button>
+      </div>
+
     </div>
 
   </div>
@@ -27,6 +31,14 @@ export default {
       message: '',
       lastRawResponse: '',
       delimiter: '',
+      inProgressMessage: '',
+      inProgressMessageObject: {
+        bot: true,
+        message: ""
+      },
+      isTypingResult: false,
+      typingInterval: -1,
+      messageComplete: false
     }
   },
   computed: {
@@ -40,6 +52,9 @@ export default {
         e.preventDefault();
         this.enterPressed();
       }
+    },
+    clickSend() {
+      this.enterPressed();
     },
     enterPressed() {
       this.messages.push({
@@ -59,9 +74,9 @@ export default {
           messageStr += "<|prompter|>" + msg.message + "<|endoftext|>"
         }
       }
-     
-      if(!this.messages.slice(-1).bot){
-        messageStr+="<|assistant|>"
+
+      if (!this.messages.slice(-1).bot) {
+        messageStr += "<|assistant|>"
       }
       // this.messages.forEach(msg => {
       //   if (msg.bot) {
@@ -71,7 +86,7 @@ export default {
       //     messageStr += 'User: ' + msg.message + this.delimiter
       //   }
       // });
-      this.postData({ prompt: messageStr}).then((response) => {
+      this.postData({ prompt: messageStr }).then((response) => {
 
         this.processResult(response)
       })
@@ -79,42 +94,58 @@ export default {
       this.message = '';
     },
     processResult(resultString) {
-      console.log(resultString)
+      // console.log(resultString)
       //check if it contains end of text token
       var endToken = "<|endoftext|>"
       var iterate = false;
-      resultString = resultString.replaceAll("\n\n", "</br></br>");
-      
-      if (resultString.split(endToken).slice(-1)=="") {
-       
+      resultString = resultString.replaceAll("\n\n", "<br><br>");
+
+      if (resultString.split(endToken).slice(-1) == "") {
+
         console.log('done')
+        this.messageComplete = true;
+
       } else {
         iterate = true;
+        this.messageComplete = false;
       }
 
       //process
       var messageArr = [];
       var messages = resultString.split("<|endoftext|>");
-      console.log(messages)
-      messages.forEach(msg => {
-        if(msg!=''){
-        if (msg.indexOf("<|prompter|>") > -1) {
-          messageArr.push({
-            bot: false,
-            message: msg.split("<|prompter|>")[1]
-          })
-        }else{
-          var msgObj = {
-            bot: true,
-            message: msg.replaceAll("<|assistant|>","")
+      for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i];
+        if (msg != '') {
+          if (msg.indexOf("<|prompter|>") > -1) {
+            messageArr.push({
+              bot: false,
+              message: msg.split("<|prompter|>")[1]
+            })
+          } else {
+            var msgObj = {
+              bot: true,
+              message: msg.replaceAll("<|assistant|>", "")
+            }
+
+            if (i == messages.length - 1) {
+              this.inProgressMessage = msgObj.message;
+              if (iterate) {
+                messageArr.push(this.inProgressMessageObject)
+                if (!this.isTypingResult) {
+                  this.inProgressMessageObject.message = '';
+                  this.startTypingResult();
+                }
+              } else {
+                messageArr.push(msgObj)
+              }
+            }else{
+              messageArr.push(msgObj)
+            }
+
           }
-         
-          messageArr.push(msgObj)
-          
         }
       }
-        
-      });
+
       //assign it
       this.messages = messageArr;
       //iterate ?
@@ -123,6 +154,21 @@ export default {
           this.processResult(result)
         })
       }
+    },
+    startTypingResult() {
+      this.isTypingResult = true;
+      var charIndex = 0;
+      this.typingInterval = setInterval(() => {
+        if (this.messageComplete) {
+          clearInterval(this.typingInterval);
+          this.isTypingResult = false;
+          console.log('done')
+        }
+        if (charIndex < this.inProgressMessage.length) {
+          this.inProgressMessageObject.message += this.inProgressMessage.charAt(charIndex)
+          charIndex++
+        }
+      }, 10);
     },
     async postData(prompt) {
 
@@ -178,17 +224,46 @@ export default {
     box-sizing: border-box;
 
     .input {
+      display: flex;
+      justify-content: space-between;
       background-color: #41414c;
       padding: 16px;
       border-radius: 6px;
+      align-items: center;
     }
 
-    .input.empty:before {
+    .field {
+      flex-grow: 1;
+      min-height: 20px;
+
+    }
+
+    .field.empty:before {
       content: attr(placeholder);
       color: grey;
       font-style: italic;
       position: absolute;
     }
+  }
+
+  .commit-button {
+    all: unset;
+    background-color: rgba(0, 0, 0, .5);
+    color: rgba(255, 255, 255, 1);
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 12px;
+    align-self: flex-start;
+    opacity: .6;
+    cursor: pointer;
+  }
+
+  .commit-button:hover {
+    opacity: 1;
+  }
+
+  .commit-button:active {
+    opacity: .3;
   }
 
   [contenteditable]:focus {
