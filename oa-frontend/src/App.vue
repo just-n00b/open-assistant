@@ -8,9 +8,10 @@ import { RouterLink, RouterView } from 'vue-router'
 
 <style>
 #app {
-  height: 100vh;
+  height: 100%;
   background-color: #343442;
   box-sizing: border-box;
   color: white;
+  
 }
 </style>

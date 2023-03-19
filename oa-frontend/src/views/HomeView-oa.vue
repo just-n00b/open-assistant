@@ -1,6 +1,6 @@
 <template>
   <div class="HomeView">
-    <div class="messages">
+    <div class="messages" ref="messages">
       <div class="message" :class="{ bot: message.bot }" v-for="message in messages" v-html="message.message">
       </div>
     </div>
@@ -168,6 +168,8 @@ export default {
           this.inProgressMessageObject.message += this.inProgressMessage.charAt(charIndex)
           charIndex++
         }
+        //auto scroll
+        this.$refs.messages.scrollTop = this.$refs.messages.scrollHeight - this.$refs.messages.offsetHeight;
       }, 10);
     },
     async postData(prompt) {
@@ -191,7 +193,6 @@ export default {
 .HomeView {
 
   box-sizing: border-box;
-  overflow: auto;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -206,7 +207,7 @@ export default {
 
     .message {
       box-sizing: border-box;
-      padding: 16px;
+      padding: 32px;
       white-space: pre-line;
     }
 

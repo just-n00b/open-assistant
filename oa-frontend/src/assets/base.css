@@ -2,9 +2,11 @@
 :root {
   
 }
-
+html{
+  height: 100%;
+  overflow: hidden;
+}
 body {
-  min-height: 100vh;
   color: var(--color-text);
   background: var(--color-background);
   transition: color 0.5s, background-color 0.5s;
@@ -18,5 +20,6 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-
+}
+#app{
 }
